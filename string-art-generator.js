@@ -11,7 +11,7 @@ const scale = 0.92;
 
 // play around with these variables and the image variable
 var pins = 280; 
-var lines = 1000; // number of 'strings'
+var numLines = 10000; // number of 'strings'
 
 setDocDimensions(size, size);
 
@@ -38,8 +38,8 @@ drawLines(polyline);
 
 // convert a point inside the circle to an image pixel in the image variable
 function coordToImagePixel(x, y) {
-  let imageX = ((x * scale + size * scale / 2) / size) * (image[0].length);
-  let imageY = ((y * scale + size * scale / 2) / size) * (image.length);
+  let imageX = ((x * scale) / (size * scale)) * (image[0].length);
+  let imageY = ((y * scale) / (size * scale)) * (image.length);
   return [imageX, imageY];
 }
 
@@ -81,8 +81,9 @@ function checkLines() {
     for (diagonal of diagonals) {
       let coord1 = coordToImagePixel(x, y);
       let coord2 = coordToImagePixel(diagonal[0], diagonal[1]);
-
+      
       let sumPixelValues = 0;
+      let pixelsPassed = 0;
       // Bresenham's line algorithm
       let dX = coord2[0] - coord1[0];
       let dY = coord2[1] - coord1[1];
@@ -90,8 +91,10 @@ function checkLines() {
       for (let j=0; j <= d; j++) {
         let passedX = Math.round(coord1[0] + (j * dX / d));
         let passedY = Math.round(coord1[1] + (j * dY / d));
-        console.log(passedY, passedX)
         sumPixelValues += image[passedY][passedX]
+
+        // the image data where the line is passed through is deleted to prevent 'bunching', where too many lines are drawn in a dark area of the image
+        // image[passedY][passedX] = 255
       }
       lines.set([[x, y], diagonal], sumPixelValues);
     }
@@ -100,12 +103,17 @@ function checkLines() {
 }
 
 checkLines()
+console.log(image)
 
 // sorting the lines map by value
-const sortedLinesDesc = Array.from(lines).sort((a, b) => b[1]-a[1]);
+const sortedLinesDesc = Array.from(lines).sort((a, b) => a[1]-b[1]);
 const sortedLinesMap = new Map(sortedLinesDesc)
 
-console.log(sortedLinesDesc);
-
+let linesDrawn = 0;
 for (let [key, value] of sortedLinesMap) {
+  drawLines([key]);
+  linesDrawn++;
+  if (linesDrawn == numLines*2) {
+    break;
+  }
 }
