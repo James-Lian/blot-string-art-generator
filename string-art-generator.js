@@ -11,7 +11,7 @@ const scale = 0.92;
 
 // play around with these variables and the image variable
 var pins = 280; 
-var numLines = 10000; // number of 'strings'
+var numLines = 1000; // number of 'strings'
 
 setDocDimensions(size, size);
 
@@ -45,45 +45,50 @@ function coordToImagePixel(x, y) {
 
 var test = 0;
 function returnDiagonals(pinIndex) {
-  // the number of diagonals that haven't been checked yet
-  let numDiagonalsToCheck = (pins - 3) - Math.max(pinIndex - 1, 0)
 
-  let pointDiagonals = [];
+  let startingPin = (pinIndex + 2) % pins;
+  let endingPin = (pinIndex + pins - 1);
+
+  let pointDiagonals = new Map();
 
   let r = size / 2
-  for (let i = pins-1; i >= pins-numDiagonalsToCheck; i--) {
-    let radians = (i / pins) * (2 * Math.PI) + (Math.PI); // start drawing from the bottom
+  for (let i = startingPin; i < endingPin; i++) {
+    let radians = ((i % pins) / pins) * (2 * Math.PI) + (Math.PI); // start drawing from the bottom
     let x = r + (r*scale) * Math.sin(radians);
     let y = r + (r*scale) * Math.cos(radians);
-    pointDiagonals.push([x, y])
+    pointDiagonals.set([x, y], i % pins);
   }
   return pointDiagonals;
 }
 
-var lines;
+var lines = new Map();
+var linesToPins = new Map();
+var linesToDraw;
 function checkLines() {
   // ex. lines.set([x, y], sumOfPixelValues)
-  lines = new Map();
   
   // diagonals of a polygon: n(n-3)/2
   let i = 0;
   let r = size / 2
-  let linesConsidered = 0;
-  while ((i < pins)) {
-    let radians = (i / pins) * (2 * Math.PI) + (Math.PI); // start drawing from the bottom
+  let currPin = 0;
+  while (i < numLines) {
+    let radians = (currPin / pins) * (2 * Math.PI) + (Math.PI); // start drawing from the bottom
     let x = r + (r*scale) * Math.sin(radians);
     let y = r + (r*scale) * Math.cos(radians);
     
     // returns array of points
-    let diagonals = returnDiagonals(i)
-    
-    let diagonal;
-    for (diagonal of diagonals) {
+    let diagonals = returnDiagonals(currPin)
+
+    // find the darkest path for the current pin
+    lines.clear();
+    linesToPins.clear()
+    for (let [diagonal, iPin] of diagonals) {      
       let coord1 = coordToImagePixel(x, y);
       let coord2 = coordToImagePixel(diagonal[0], diagonal[1]);
       
       let sumPixelValues = 0;
       let pixelsPassed = 0;
+      
       // Bresenham's line algorithm
       let dX = coord2[0] - coord1[0];
       let dY = coord2[1] - coord1[1];
@@ -91,19 +96,47 @@ function checkLines() {
       for (let j=0; j <= d; j++) {
         let passedX = Math.round(coord1[0] + (j * dX / d));
         let passedY = Math.round(coord1[1] + (j * dY / d));
-        sumPixelValues += image[passedY][passedX]
 
-        // the image data where the line is passed through is deleted to prevent 'bunching', where too many lines are drawn in a dark area of the image
-        // image[passedY][passedX] = 255
+        try {
+          sumPixelValues += image[passedY][passedX];
+          console.log(coord1, coord2) <-- coord2 goes back down and goes back up
+        }
+        catch (err) {
+          console.log(err)
+          console.log(coord1, coord2)
+        }
       }
       lines.set([[x, y], diagonal], sumPixelValues);
+      linesToPins.set([[x, y], diagonal], iPin);
     }
+    const sortedLines = Array.from(lines).sort((a, b) => a[1]-b[1]);
+    drawLines([sortedLines[0][0]])
+    for (let [iLine, iPin] of linesToPins) {
+      if (iLine.toString() == sortedLines[0][0].toString()) {
+        currPin = iPin;
+      }
+    }
+    
+    // the image data where the line is passed through is deleted to prevent 'bunching', where too many lines are drawn in a dark area of the image
+    let coord1 = coordToImagePixel(sortedLines[0][0][0][0], sortedLines[0][0][0][1]);
+    let coord2 = coordToImagePixel(sortedLines[0][0][1][0], sortedLines[0][0][1][1]);
+    
+    // Bresenham's line algorithm
+    let dX = coord2[0] - coord1[0];
+    let dY = coord2[1] - coord1[1];
+    let d = Math.max(Math.abs(dX), Math.abs(dY))
+    for (let j=0; j <= d; j++) {
+      let passedX = Math.round(coord1[0] + (j * dX / d));
+      let passedY = Math.round(coord1[1] + (j * dY / d));
+      
+      image[passedY][passedX] = 255;
+    }
+    
     i++;
   }
 }
 
 checkLines()
-console.log(image)
 
 // sorting the lines map by value
 const sortedLinesDesc = Array.from(lines).sort((a, b) => a[1]-b[1]);
