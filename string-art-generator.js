@@ -25,37 +25,53 @@ var lines = new Map();
 var linesToPins = new Map();
 var linesToDraw;
 
-function getGrayscaleArray(imgURL, width, callback) {
-  const xhr = new XMLHttpRequest();
-  const url = `https://string-art-image-service.vercel.app/api/grayscale?url=${encodeURIComponent(imgURL)}&width=${width}`;
-
-  xhr.open('GET', url, false);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-
-  xhr.onreadystatechange = function () {
-    if (xhr.readyState === 4) {
-      if (xhr.status === 200) {
-        const response = JSON.parse(xhr.responseText);
-        callback(null, response.grayscaleArray);
-      } else {
-        callback(new Error(`Error: ${xhr.status}`));
-      }
-    }
-  };
-  xhr.send();
+async function fetchImage(URL) {
+  const response = await fetch(URL);
+  const blob = await response.blob();
+  const bitmap = await createImageBitmap(blob);
+  return bitmap;
 }
 
-getGrayscaleArray(imageURL, size, function (err, grayscaleArray) {
-  if (err) {
-    console.error('Error:', err);
-  } else {
-    image = grayscaleArray;
-    console.log(image);
-    init()
+function imageToGrayscaleArray(imageBitmap) {
+  const offscreenCanvas = new OffscreenCanvas(imageBitmap.width, imageBitmap.height)
+  const context = offscreenCanvas.getContext('2d');
+
+  context.drawImage(imageBitmap, 0, 0, imageBitmap.width, imageBitmap.height);
+
+  const imageData = context.getImageData(0, 0, imageBitmap.width, imageBitmap.height);
+  const data = imageData.data;
+
+  const width = imageBitmap.width;
+  const height = imageBitmap.height;
+
+  const grayscaleArray = new Array(height);
+  for (let y = 0; y < height; y++) {
+    grayscaleArray[y] = new Array(width);
   }
-});
 
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const index = (y * width + x) * 4;
+      const red = data[index];
+      const green = data[index + 1];
+      const blue = data[index + 2];
+  
+      const grayscale = Math.round((red + green + blue) / 3)
+      grayscaleArray[y][x] = grayscale;
+    }
+  }
+  
+  return grayscaleArray;
+}
 
+async function processImage(url) {
+  let imgBitmap = await fetchImage(url);
+  let grayscaleArray = imageToGrayscaleArray(imgBitmap);
+  image = grayscaleArray;
+  init();
+}
+
+processImage(imageURL);
 
 /* Drawing the circle */
 function circle(steps, proportion) {
