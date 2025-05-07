@@ -8,8 +8,8 @@
 var imageURL = "https://raw.githubusercontent.com/James-Lian/blot-string-art-generator/main/examples/mona.jpg";
 var image;
 
-const size = 300;
-const scale = 0.99; // decimal between 0.99 and 0.01 - defines frame of circle
+const size = 300; // size of the document
+const scale = 0.99; // decimal between 0.99 and 0.01 - circular frame size = size * scale
 
 // play around with these variables and the image variable
 var pins = 280; 
@@ -25,6 +25,7 @@ var lines = new Map();
 var linesToPins = new Map();
 var linesToDraw;
 
+// get grayscale image pixel array from an image URL
 function getGrayscaleArray(imgURL, width, callback) {
   const xhr = new XMLHttpRequest();
   const url = `https://string-art-image-service.vercel.app/api/grayscale?url=${encodeURIComponent(imgURL)}&width=${width}`;
@@ -114,7 +115,7 @@ function checkLines() {
     let x = r + (r*scale) * Math.sin(radians);
     let y = r + (r*scale) * Math.cos(radians);
     
-    // returns array of points
+    // returns array of points, all possible paths from the current pin to other pins
     let diagonals = returnDiagonals(currPin)
 
     // find the darkest path for the current pin
