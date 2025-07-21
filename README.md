@@ -6,7 +6,7 @@ Play around to generate string art that fits your liking.
 
 (P.S. if you so wish, there is also a Python program to generate your own grayscale array from an image file. Just use a previous version of the JS file. )
 
-Try it out [here](https://blot.hackclub.com/editor?src=https://raw.githubusercontent.com/hackclub/blot/main/art/stringArt-jamesLian/index.js)!
+[Try it out here!](https://blot.hackclub.com/editor?src=https://raw.githubusercontent.com/hackclub/blot/main/art/stringArt-jamesLian/index.js)
 
 ### The algorithm
 The string art generator works by finding all possible paths between different pins, and evaluating the 'darkness' of the pixels beneath the path. Once it has selected the darkest path, it lightens the pixels underneath to prevent a behaviour where the algorithm continuously draws lines in the same dark area. 
